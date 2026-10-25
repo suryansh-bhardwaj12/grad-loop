@@ -21,11 +21,11 @@ Resume creation + analysis, profile recommendations, authentication, and databas
 <br/>
 
 <!-- Repo activity / social badges (also big) -->
-<img alt="Stars" src="https://img.shields.io/github/stars/Aryan9059/grad-loop?style=for-the-badge&color=ffb703" />
-<img alt="Forks" src="https://img.shields.io/github/forks/Aryan9059/grad-loop?style=for-the-badge&color=8ecae6" />
-<img alt="Issues" src="https://img.shields.io/github/issues/Aryan9059/grad-loop?style=for-the-badge&color=fb7185" />
-<img alt="Last Commit" src="https://img.shields.io/github/last-commit/Aryan9059/grad-loop?style=for-the-badge&color=22c55e" />
-<img alt="License" src="https://img.shields.io/github/license/Aryan9059/grad-loop?style=for-the-badge&color=a78bfa" />
+<img alt="Stars" src="https://img.shields.io/github/stars/suryansh-bhardwaj12/grad-loop?style=for-the-badge&color=ffb703" />
+<img alt="Forks" src="https://img.shields.io/github/forks/suryansh-bhardwaj12/grad-loop?style=for-the-badge&color=8ecae6" />
+<img alt="Issues" src="https://img.shields.io/github/issues/suryansh-bhardwaj12/grad-loop?style=for-the-badge&color=fb7185" />
+<img alt="Last Commit" src="https://img.shields.io/github/last-commit/suryansh-bhardwaj12/grad-loop?style=for-the-badge&color=22c55e" />
+<img alt="License" src="https://img.shields.io/github/license/suryansh-bhardwaj12/grad-loop?style=for-the-badge&color=a78bfa" />
 
 <br/>
 
@@ -53,7 +53,7 @@ Resume creation + analysis, profile recommendations, authentication, and databas
 - [Database](#database)
 - [Python Components](#python-components)
 - [Scripts](#scripts)
-- [Team Contributions](#team-contributions)
+- [Team Members](#team-members)
 - [Contributing](#contributing)
 
 ---
@@ -139,7 +139,7 @@ Grad-Loop is a full‑stack application focused on improving career readiness. I
 ### 1) Clone the repository
 
 ```bash
-git clone https://github.com/Aryan9059/grad-loop.git
+git clone https://github.com/suryansh-bhardwaj12/grad-loop.git
 cd grad-loop
 ```
 
@@ -222,13 +222,10 @@ Common scripts you may find in `package.json`:
 
 ---
 
-## Team Contributions
+## Team Members
 
-- **Paras Pandey (IIT2024235)** — Profile Recommendations
-- **Chandan Sapkale (IIT2024258)** — Frontend + Authentication
-- **Soham Donode (IIT2024259)** — Frontend + Database
-- **Aryan Srivastava (IIT2024501)** — Resume Creator & Analyzer
-- **Rehan Farishta (IIT2024267)** — Backend
+- **Suryansh Bhardwaj (IEC2024032)**
+- **Aryan Srivastava (IIT2024501)**
 
 ---
 

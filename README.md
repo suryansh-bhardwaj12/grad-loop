@@ -222,13 +222,6 @@ Common scripts you may find in `package.json`:
 
 ---
 
-## Team Members
-
-- **Suryansh Bhardwaj (IEC2024032)**
-- **Aryan Srivastava (IIT2024501)**
-
----
-
 ## Contributing
 
 1. Fork the repository

@@ -12,6 +12,8 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DIRECT_URL"] || process.env["DATABASE_URL"],
+    // Use pooling URL for queries, direct URL for migrations
+    url: process.env["DATABASE_POOLING_URL"] || process.env["DATABASE_URL"],
+    directUrl: process.env["DIRECT_URL"] || process.env["DATABASE_URL"],
   },
 });

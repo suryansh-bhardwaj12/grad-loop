@@ -1,13 +1,13 @@
-import { Mistral } from "@mistralai/mistralai";
+import { GoogleGenAI } from "@google/genai";
 import pg from "pg";
 
 // Lazy singletons — initialized on first use so env vars are available
-let _mistral: Mistral | null = null;
-function getMistral() {
-  if (!_mistral) {
-    _mistral = new Mistral({ apiKey: process.env.MISTRAL_API_KEY! });
+let _genai: GoogleGenAI | null = null;
+function getGenAI() {
+  if (!_genai) {
+    _genai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
   }
-  return _mistral;
+  return _genai;
 }
 
 let _pool: pg.Pool | null = null;
@@ -65,20 +65,20 @@ export function buildProfileText(user: {
 }
 
 /**
- * Generate an embedding vector using Mistral's mistral-embed model (1024 dims).
+ * Generate an embedding vector using Gemini's text-embedding-004 model (768 dims).
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  const response = await getMistral().embeddings.create({
-    model: "mistral-embed",
-    inputs: [text],
+  const result = await getGenAI().models.embedContent({
+    model: "text-embedding-004",
+    contents: text,
   });
 
-  const data = response.data;
-  if (!data || data.length === 0 || !data[0].embedding) {
-    throw new Error("Mistral embedding response has no data");
+  const embedding = result.embeddings?.[0]?.values;
+  if (!embedding || embedding.length === 0) {
+    throw new Error("Gemini embedding response has no data");
   }
 
-  return data[0].embedding;
+  return embedding;
 }
 
 /**

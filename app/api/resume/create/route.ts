@@ -1,8 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { Mistral } from "@mistralai/mistralai";
+import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
-import { uploadAndSign } from "@/lib/mistral-upload";
 
 const LATEX_TEMPLATE = String.raw`
 \documentclass[letterpaper,11pt]{article}
@@ -107,8 +106,8 @@ export async function POST(req: NextRequest) {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const apiKey = process.env.MISTRAL_API_KEY;
-    if (!apiKey) return NextResponse.json({ error: "Mistral API key not configured" }, { status: 500 });
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return NextResponse.json({ error: "Gemini API key not configured" }, { status: 500 });
 
     try {
         const formData = await req.formData();
@@ -128,13 +127,11 @@ export async function POST(req: NextRequest) {
             user.skills?.length ? `Skills: ${user.skills.join(", ")}` : null,
         ].filter(Boolean).join("\n");
 
-        const client = new Mistral({ apiKey });
+        const genai = new GoogleGenAI({ apiKey });
 
-        type UserContentPart =
-            | { type: "text"; text: string }
-            | { type: "document_url"; documentUrl: string };
-
-        const userParts: UserContentPart[] = [];
+        // Build the prompt parts
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const parts: any[] = [];
 
         if (file) {
             const allowed = [
@@ -149,15 +146,21 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json({ error: "File must be under 5MB" }, { status: 400 });
             }
 
-            const { fileId, signedUrl } = await uploadAndSign(file, apiKey);
-            userParts.push({ type: "document_url", documentUrl: signedUrl });
-
-            client.files.delete({ fileId }).catch(() => { });
+            // Pass the file inline as base64 — no upload/signing needed
+            const arrayBuffer = await file.arrayBuffer();
+            const base64 = Buffer.from(arrayBuffer).toString("base64");
+            parts.push({
+                inlineData: {
+                    mimeType: file.type,
+                    data: base64,
+                },
+            });
         }
 
-        userParts.push({
-            type: "text",
+        parts.push({
             text: [
+                SYSTEM_PROMPT,
+                "",
                 "Generate a complete LaTeX resume for the following person.",
                 "",
                 "=== PROFILE DATA ===",
@@ -170,16 +173,15 @@ export async function POST(req: NextRequest) {
             ].join("\n"),
         });
 
-        const completion = await client.chat.complete({
-            model: "mistral-large-latest",
-            temperature: 0.3,
-            messages: [
-                { role: "system", content: SYSTEM_PROMPT },
-                { role: "user", content: userParts },
-            ],
+        const response = await genai.models.generateContent({
+            model: "gemini-2.0-flash",
+            contents: [{ role: "user", parts }],
+            config: {
+                temperature: 0.3,
+            },
         });
 
-        let latex = (completion.choices?.[0]?.message?.content as string) ?? "";
+        let latex = response.text ?? "";
         latex = latex
             .replace(/^```latex\s*/i, "")
             .replace(/^```\s*/i, "")

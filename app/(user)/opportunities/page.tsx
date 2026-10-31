@@ -3,6 +3,8 @@ import { getOpportunities } from "@/lib/data";
 import OpportunitiesView from "@/components/opportunities/OpportunitiesView";
 import { Briefcase } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 
 
 export default async function OpportunitiesPage() {

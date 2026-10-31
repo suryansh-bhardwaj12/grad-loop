@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.8",
-    "@mistralai/mistralai": "^2.2.0",
+    "@google/genai": "^1.0.0",
+    "@next/swc-win32-x64-msvc": "^16.2.2",
     "@prisma/adapter-pg": "^7.6.0",
     "@prisma/client": "^7.6.0",
     "@supabase/ssr": "^0.10.0",
@@ -47,5 +48,9 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "optionalDependencies": {
+    "@next/swc-wasm-nodejs": "^16.2.2",
+    "lightningcss-win32-x64-msvc": "^1.33.0"
   }
 }

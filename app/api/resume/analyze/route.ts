@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { Mistral } from "@mistralai/mistralai";
-import { uploadAndSign } from "@/lib/mistral-upload";
+import { GoogleGenAI } from "@google/genai";
 
 const SYSTEM_PROMPT = `You are an expert ATS (Applicant Tracking System) analyst and resume coach with 15+ years of experience reviewing resumes across tech, finance, consulting, and other industries.
 
@@ -43,8 +42,8 @@ export async function POST(req: NextRequest) {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const apiKey = process.env.MISTRAL_API_KEY;
-    if (!apiKey) return NextResponse.json({ error: "Mistral API key not configured" }, { status: 500 });
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return NextResponse.json({ error: "Gemini API key not configured" }, { status: 500 });
 
     try {
         const formData = await req.formData();
@@ -64,40 +63,48 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "File size must be under 5MB" }, { status: 400 });
         }
 
-        // UPLOAD FILE AND PASS URL
-        const { fileId, signedUrl } = await uploadAndSign(file, apiKey);
-        const client = new Mistral({ apiKey });
+        // Pass the file inline as base64 — no upload/signing needed
+        const arrayBuffer = await file.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString("base64");
 
-        const response = await client.chat.complete({
-            model: "mistral-large-latest",
-            responseFormat: { type: "json_object" },
-            temperature: 0.3,
-            messages: [
-                { role: "system", content: SYSTEM_PROMPT },
+        const genai = new GoogleGenAI({ apiKey });
+
+        const response = await genai.models.generateContent({
+            model: "gemini-2.0-flash",
+            contents: [
                 {
                     role: "user",
-                    content: [
-                        { type: "document_url", documentUrl: signedUrl },
-                        { type: "text", text: "Analyze this resume and return only valid JSON following the structure in the system prompt." },
+                    parts: [
+                        {
+                            inlineData: {
+                                mimeType: file.type,
+                                data: base64,
+                            },
+                        },
+                        {
+                            text: `${SYSTEM_PROMPT}\n\nAnalyze this resume and return only valid JSON following the structure above.`,
+                        },
                     ],
                 },
             ],
+            config: {
+                temperature: 0.3,
+                responseMimeType: "application/json",
+            },
         });
 
-        await client.files.delete({ fileId }).catch(() => { });
-
-        const rawText = response.choices?.[0]?.message?.content ?? "";
-        const textContent = Array.isArray(rawText)
-            ? rawText.map((c: { type: string; text?: string }) => (c.type === "text" ? c.text ?? "" : "")).join("")
-            : rawText;
-
-        const cleaned = textContent.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+        const rawText = response.text ?? "";
+        const cleaned = rawText
+            .replace(/^```json\s*/i, "")
+            .replace(/^```\s*/i, "")
+            .replace(/```\s*$/i, "")
+            .trim();
 
         let analysis;
         try {
             analysis = JSON.parse(cleaned);
         } catch {
-            console.error("Failed to parse Mistral response:", textContent);
+            console.error("Failed to parse Gemini response:", rawText);
             return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
         }
 

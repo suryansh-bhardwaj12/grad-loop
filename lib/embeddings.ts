@@ -65,15 +65,19 @@ export function buildProfileText(user: {
 }
 
 /**
- * Generate an embedding vector using Gemini's text-embedding-004 model (768 dims).
+ * Generate an embedding vector using Gemini's gemini-embedding-001 model (768 dims).
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   const result = await getGenAI().models.embedContent({
-    model: "text-embedding-004",
+    model: "gemini-embedding-001",
     contents: text,
+    config: {
+      outputDimensionality: 768,
+    },
   });
 
-  const embedding = result.embeddings?.[0]?.values;
+  const embedding =
+    result.embeddings?.[0]?.values || (result as any).embedding?.values;
   if (!embedding || embedding.length === 0) {
     throw new Error("Gemini embedding response has no data");
   }

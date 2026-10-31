@@ -2,6 +2,9 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 const SYSTEM_PROMPT = `You are an expert ATS (Applicant Tracking System) analyst and resume coach with 15+ years of experience reviewing resumes across tech, finance, consulting, and other industries.
 
 Analyze the resume and return a JSON response with EXACTLY this structure (no markdown, no extra text, pure JSON):
@@ -42,8 +45,9 @@ export async function POST(req: NextRequest) {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) return NextResponse.json({ error: "Gemini API key not configured" }, { status: 500 });
+    const rawApiKey = process.env.GEMINI_API_KEY;
+    if (!rawApiKey) return NextResponse.json({ error: "Gemini API key not configured in environment" }, { status: 500 });
+    const apiKey = rawApiKey.trim().replace(/^["']|["']$/g, "");
 
     try {
         const formData = await req.formData();
@@ -51,19 +55,19 @@ export async function POST(req: NextRequest) {
 
         if (!file) return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
 
-        const allowedTypes = [
-            "application/pdf",
-            "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ];
-        if (!allowedTypes.includes(file.type)) {
+        const isPdf = file.name.toLowerCase().endsWith(".pdf") || file.type.includes("pdf");
+        const isDoc = file.name.toLowerCase().endsWith(".doc") || file.name.toLowerCase().endsWith(".docx");
+
+        if (!isPdf && !isDoc) {
             return NextResponse.json({ error: "Only PDF and Word documents (.doc, .docx) are supported" }, { status: 400 });
         }
         if (file.size > 5 * 1024 * 1024) {
             return NextResponse.json({ error: "File size must be under 5MB" }, { status: 400 });
         }
 
-        // Pass the file inline as base64 — no upload/signing needed
+        const mimeType = isPdf ? "application/pdf" : file.type;
+
+        // Pass the file inline as base64
         const arrayBuffer = await file.arrayBuffer();
         const base64 = Buffer.from(arrayBuffer).toString("base64");
 
@@ -77,7 +81,7 @@ export async function POST(req: NextRequest) {
                     parts: [
                         {
                             inlineData: {
-                                mimeType: file.type,
+                                mimeType,
                                 data: base64,
                             },
                         },
@@ -105,12 +109,13 @@ export async function POST(req: NextRequest) {
             analysis = JSON.parse(cleaned);
         } catch {
             console.error("Failed to parse Gemini response:", rawText);
-            return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
+            return NextResponse.json({ error: "Failed to parse AI response: " + rawText.slice(0, 100) }, { status: 500 });
         }
 
         return NextResponse.json({ success: true, analysis });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Resume analysis error:", error);
-        return NextResponse.json({ error: "Analysis failed. Please try again." }, { status: 500 });
+        const message = error?.message || (typeof error === "string" ? error : "Analysis failed");
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

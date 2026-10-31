@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 const LATEX_TEMPLATE = String.raw`
 \documentclass[letterpaper,11pt]{article}
 
@@ -106,8 +109,9 @@ export async function POST(req: NextRequest) {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) return NextResponse.json({ error: "Gemini API key not configured" }, { status: 500 });
+    const rawApiKey = process.env.GEMINI_API_KEY;
+    if (!rawApiKey) return NextResponse.json({ error: "Gemini API key not configured in environment" }, { status: 500 });
+    const apiKey = rawApiKey.trim().replace(/^["']|["']$/g, "");
 
     try {
         const formData = await req.formData();
@@ -134,24 +138,24 @@ export async function POST(req: NextRequest) {
         const parts: any[] = [];
 
         if (file) {
-            const allowed = [
-                "application/pdf",
-                "application/msword",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            ];
-            if (!allowed.includes(file.type)) {
+            const isPdf = file.name.toLowerCase().endsWith(".pdf") || file.type.includes("pdf");
+            const isDoc = file.name.toLowerCase().endsWith(".doc") || file.name.toLowerCase().endsWith(".docx");
+
+            if (!isPdf && !isDoc) {
                 return NextResponse.json({ error: "Only PDF or DOCX resumes are supported" }, { status: 400 });
             }
             if (file.size > 5 * 1024 * 1024) {
                 return NextResponse.json({ error: "File must be under 5MB" }, { status: 400 });
             }
 
+            const mimeType = isPdf ? "application/pdf" : file.type;
+
             // Pass the file inline as base64 — no upload/signing needed
             const arrayBuffer = await file.arrayBuffer();
             const base64 = Buffer.from(arrayBuffer).toString("base64");
             parts.push({
                 inlineData: {
-                    mimeType: file.type,
+                    mimeType,
                     data: base64,
                 },
             });
@@ -193,8 +197,9 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json({ success: true, latex });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Resume create error:", error);
-        return NextResponse.json({ error: "Failed to generate resume. Please try again." }, { status: 500 });
+        const message = error?.message || (typeof error === "string" ? error : "Failed to generate resume. Please try again.");
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

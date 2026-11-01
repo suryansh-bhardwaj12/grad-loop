@@ -50,6 +50,7 @@
   },
   "optionalDependencies": {
     "@next/swc-wasm-nodejs": "^16.2.2",
+    "@next/swc-win32-x64-msvc": "^16.4.3",
     "lightningcss-win32-x64-msvc": "^1.33.0"
   }
 }
